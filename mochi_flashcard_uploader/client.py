@@ -1,9 +1,11 @@
-from typing import Dict
+from typing import Optional, Dict, List
 import requests
 from pathlib import Path
 from .models import Card, Deck
+import base64
 import mimetypes
 from rich.console import Console
+from rich.progress import Progress
 
 class MochiClient:
     def __init__(self, api_key: str, base_url: str = "https://app.mochi.cards/api"):
@@ -15,32 +17,44 @@ class MochiClient:
 
     def create_deck(self, deck: Deck) -> Dict:
         """Create a new deck in Mochi."""
-        response = self.session.post(
-            f"{self.base_url}/decks",
-            json={
+        try:
+            json = {
                 "name": deck.name,
                 "parent-id": deck.parent_id,
-                "sort": deck.sort,
+                "sort": deck.sort if deck.sort else 0,
                 "archived?": deck.archived,
-                "trashed?": deck.trashed.isoformat() if deck.trashed else None,
                 "show-sides?": deck.show_sides,
                 "sort-by-direction": deck.sort_by_direction,
                 "review-reverse?": deck.review_reverse
             }
-        )
-        response.raise_for_status()
-        return response.json()
+            if deck.trashed:
+                json["trashed?"] = deck.trashed.isoformat()
+            response = self.session.post(
+                f"{self.base_url}/decks",
+                json=json
+            )
+            response.raise_for_status()
+            return response.json()
+        except Exception as e:
+            print(f"Error: {e}")
+            print(f"Response: {response.text}")
+            raise
 
     def create_card(self, card: Card) -> Dict:
         """Create a new card in Mochi."""
+        # Convert the markdown to match Mochi's format
+        content = card.content.replace("---", "***")  # Replace markdown divider with Mochi's divider
+
         payload = {
-            "content": card.content,
+            "content": content,
             "deck-id": card.deck_id,
             "template-id": card.template_id,
             "archived?": card.archived,
             "review-reverse?": card.review_reverse,
-            "pos": card.pos,
         }
+
+        if card.pos:
+            payload["pos"] = card.pos
 
         if card.fields:
             payload["fields"] = {
@@ -58,9 +72,13 @@ class MochiClient:
                 for att in card.attachments
             ]
 
-        response = self.session.post(f"{self.base_url}/cards", json=payload)
-        response.raise_for_status()
-        return response.json()
+        try:
+            response = self.session.post(f"{self.base_url}/cards", json=payload)
+            response.raise_for_status()
+            return response.json()
+        except requests.exceptions.HTTPError as e:
+            print("Error Response:", response.text)  # This will show the actual error message
+            raise
 
     def add_attachment(self, card_id: str, file_path: Path, attachment_id: str) -> None:
         """Add an attachment to a card."""

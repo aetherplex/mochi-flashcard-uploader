@@ -5,7 +5,7 @@ description = "A tool to upload markdown-formatted flashcards to Mochi"
 authors = ["Dominic Hawton <hello@dominichawton.com>"]
 
 [tool.poetry.scripts]
-mochi-upload = "mochi_uploader.uploader:app"
+mochi-upload = "mochi_flashcard_uploader.uploader:app"
 
 [tool.poetry.dependencies]
 python = "^3.12"
@@ -13,7 +13,6 @@ requests = "^2.31.0"
 pydantic = "^2.5.2"
 typer = "^0.9.0"
 rich = "^13.7.0"
-python-dotenv = "^1.0.0"
 
 [tool.poetry.group.dev.dependencies]
 black = "^23.11.0"

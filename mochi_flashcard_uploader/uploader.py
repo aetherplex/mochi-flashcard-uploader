@@ -7,11 +7,14 @@ from .models import Card, Deck
 import re
 from dotenv import load_dotenv
 import os
+from pathlib import Path
+
 app = typer.Typer()
 console = Console()
 
 def process_markdown_file(file_path: Path) -> List[Card]:
     """Process a markdown file and extract cards."""
+    print(f"Processing markdown file: {file_path}")
     cards = []
     with open(file_path) as f:
         content = f.read()
@@ -53,6 +56,7 @@ def upload(
     api_key: Optional[str] = typer.Option(None, help="Mochi API key"),
     parent_deck_id: Optional[str] = typer.Option(None, help="Parent deck ID if creating a nested deck")
 ):
+    print(f"Uploading {markdown_file} to deck {deck_name} with parent deck ID {parent_deck_id}")
     # Try to get API key from .env if not provided
     api_key = api_key or load_api_key()
     if not api_key:
@@ -69,13 +73,15 @@ def upload(
         )
 
         with console.status(f"Creating deck '{deck_name}'..."):
+            print(f"Deck: {deck}")
             deck_response = client.create_deck(deck)
             deck_id = deck_response['id']
             console.print(f"Created deck with ID: {deck_id}")
 
+        print(f"Deck ID: {deck_id}")
         # Process markdown file
         cards = process_markdown_file(markdown_file)
-
+        print(f"Cards: {cards}")
         with console.status(f"Uploading {len(cards)} cards...") as status:
             for i, card in enumerate(cards, 1):
                 card.deck_id = deck_id
